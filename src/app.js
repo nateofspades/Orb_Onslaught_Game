@@ -38,6 +38,8 @@ function musicLabel(){
 }
 async function beginMusic(){await music.start();}
 window.addEventListener('pointerdown',beginMusic,{capture:true});
+window.addEventListener('pointerup',beginMusic,{capture:true});
+window.addEventListener('click',beginMusic,{capture:true});
 window.addEventListener('keydown',event=>{if(!event.repeat)beginMusic();},{capture:true});
 $('music').addEventListener('click',()=>{music.toggle();musicLabel();});
 musicLabel();

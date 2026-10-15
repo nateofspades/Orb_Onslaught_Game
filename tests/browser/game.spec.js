@@ -84,6 +84,29 @@ test('visibility interruption suspends and resumes music without resetting it',a
   const after=await snapshot();expect(after.contextId).toBe(before.contextId);expect(after.step).toBeGreaterThanOrEqual(before.step);
 });
 
+test('first touchscreen tap resumes music at the touch activation phase',async({page,context})=>{
+  await page.addInitScript(()=>{
+    globalThis.__activationEvent='none';
+    for(const type of ['pointerdown','pointerup','click'])addEventListener(type,()=>{globalThis.__activationEvent=type;},{capture:true});
+    class Param{constructor(value=0){this.value=value;}setValueAtTime(value){this.value=value;}linearRampToValueAtTime(value){this.value=value;}exponentialRampToValueAtTime(value){this.value=value;}cancelScheduledValues(){}}
+    class Node{connect(){return this;}}
+    class ActivationAudioContext{
+      constructor(){this.currentTime=0;this.state='suspended';this.destination=new Node();}
+      createGain(){const node=new Node();node.gain=new Param(1);return node;}
+      createOscillator(){const node=new Node();node.frequency=new Param();node.start=()=>{};node.stop=()=>{};return node;}
+      resume(){if(!['pointerup','click'].includes(globalThis.__activationEvent))return Promise.reject(new Error('activation required'));this.state='running';return Promise.resolve();}
+      suspend(){this.state='suspended';return Promise.resolve();}
+    }
+    Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:ActivationAudioContext});
+  });
+  await page.goto('/');
+  const cdp=await context.newCDPSession(page);await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
+  const box=await page.locator('#primary').boundingBox(),touch={id:1,x:box.x+box.width/2,y:box.y+box.height/2};
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[touch]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  await expect.poll(()=>page.evaluate(async()=>(await import('/src/app.js')).music.snapshot().state)).toBe('running');
+});
+
 test('continues without storage or Web Audio permissions',async({page})=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.addInitScript(()=>{
