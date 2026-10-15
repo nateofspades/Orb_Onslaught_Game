@@ -1,6 +1,6 @@
 # Pang
 
-**[Play Pang · Aurora Expedition](https://nateofspades.github.io/pang_game/)**
+**Play now: https://nateofspades.github.io/pang_game/**
 
 ![Pang active gameplay](assets/screenshots/gameplay.png)
 
