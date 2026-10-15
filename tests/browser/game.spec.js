@@ -12,7 +12,7 @@ for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568
  expect(Math.min(boxes.left.y,boxes.right.y,boxes.fire.y)).toBeGreaterThanOrEqual(dimensions.rect.y+dimensions.rect.height);
  expect(await page.locator('#left').evaluate(element=>getComputedStyle(element).touchAction)).toBe('none');
  if(width<=844&&(width<=600||height<=480)){for(const id of ['#left','#right','#fire']){const r=await page.locator(id).boundingBox();expect(r.height).toBeGreaterThanOrEqual(64);}expect((await page.locator('#left').boundingBox()).width).toBeGreaterThanOrEqual(64);expect((await page.locator('#right').boundingBox()).width).toBeGreaterThanOrEqual(64);}
- if(width===844){const left=await page.locator('#left').boundingBox(),fire=await page.locator('#fire').boundingBox();expect(left.x).toBeLessThan(width/2);expect(fire.x).toBeGreaterThan(width/2);expect(dimensions.rect.width).toBeGreaterThanOrEqual(520);}
+ if(width===844){const left=await page.locator('#left').boundingBox(),fire=await page.locator('#fire').boundingBox();expect(left.x).toBeLessThan(width/2);expect(fire.x).toBeGreaterThan(width/2);expect(dimensions.rect.width).toBeGreaterThanOrEqual(520);expect(await page.locator('#pause').isVisible()).toBe(true);expect(await page.locator('#restart').isVisible()).toBe(true);}
  await page.getByRole('button',{name:'Start expedition'}).click();await page.waitForTimeout(250);expect(errors).toEqual([]);await context.close();
 });
 test('real simultaneous two-finger touch moves and shoots, release and cancel never stick',async({page,context})=>{
