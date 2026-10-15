@@ -6,7 +6,13 @@ for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568
  await page.goto('http://127.0.0.1:4173/');
  const dimensions=await page.locator('canvas').evaluate(c=>({w:c.width,h:c.height,rect:c.getBoundingClientRect().toJSON(),dpr:devicePixelRatio,sw:document.documentElement.scrollWidth,sh:document.documentElement.scrollHeight}));
  expect(dimensions.w).toBe(Math.round(dimensions.rect.width*2));expect(dimensions.h).toBe(Math.round(dimensions.rect.height*2));expect(dimensions.sw).toBeLessThanOrEqual(width);expect(dimensions.sh).toBeLessThanOrEqual(height);
- for(const locator of [page.locator('#primary'),page.locator('#left'),page.locator('#right'),page.locator('#fire'),page.locator('#pause'),page.locator('#restart'),page.locator('#help')]){const r=await locator.boundingBox();expect(r.x).toBeGreaterThanOrEqual(0);expect(r.y).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width);expect(r.y+r.height).toBeLessThanOrEqual(height);}
+ expect(dimensions.rect.width/dimensions.rect.height).toBeCloseTo(840/450,2);
+ const boxes=await page.evaluate(()=>Object.fromEntries(['primary','left','right','fire','pause','restart','help','music'].map(id=>[id,document.getElementById(id).getBoundingClientRect().toJSON()]).concat([['hud',document.querySelector('.hud').getBoundingClientRect().toJSON()]])));
+ for(const r of Object.values(boxes)){expect(r.x).toBeGreaterThanOrEqual(0);expect(r.y).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width);expect(r.y+r.height).toBeLessThanOrEqual(height);}
+ expect(Math.min(boxes.left.y,boxes.right.y,boxes.fire.y)).toBeGreaterThanOrEqual(dimensions.rect.y+dimensions.rect.height);
+ expect(await page.locator('#left').evaluate(element=>getComputedStyle(element).touchAction)).toBe('none');
+ if(width<=844&&(width<=600||height<=480)){for(const id of ['#left','#right','#fire']){const r=await page.locator(id).boundingBox();expect(r.height).toBeGreaterThanOrEqual(64);}expect((await page.locator('#left').boundingBox()).width).toBeGreaterThanOrEqual(64);expect((await page.locator('#right').boundingBox()).width).toBeGreaterThanOrEqual(64);}
+ if(width===844){const left=await page.locator('#left').boundingBox(),fire=await page.locator('#fire').boundingBox();expect(left.x).toBeLessThan(width/2);expect(fire.x).toBeGreaterThan(width/2);expect(dimensions.rect.width).toBeGreaterThanOrEqual(520);}
  await page.getByRole('button',{name:'Start expedition'}).click();await page.waitForTimeout(250);expect(errors).toEqual([]);await context.close();
 });
 test('real simultaneous two-finger touch moves and shoots, release and cancel never stick',async({page,context})=>{
@@ -41,6 +47,42 @@ test('starts a playable canvas, keyboard movement and sustained fire',async({pag
   expect(await game(page,'return g.shots.length')).toBeGreaterThan(0);
   await expect(page.locator('canvas')).toBeVisible();
 });
+test('music starts only after interaction and keeps one transport through UI and orientation changes',async({page})=>{
+  await page.goto('/');
+  const snapshot=()=>page.evaluate(async()=>(await import('/src/app.js')).music.snapshot());
+  expect((await snapshot()).started).toBe(false);
+  await expect(page.getByRole('button',{name:'Turn music off'})).toHaveText('Music on');
+  await page.getByRole('button',{name:'Start expedition'}).click();
+  await expect.poll(async()=>(await snapshot()).started).toBe(true);
+  const initial=await snapshot();
+  await page.getByRole('button',{name:'Pause game'}).click();
+  await page.getByRole('button',{name:'Restart game'}).click();
+  await page.getByRole('button',{name:'Turn music off'}).click();
+  const muted=await snapshot();
+  expect(muted.enabled).toBe(false);
+  expect(muted.contextId).toBe(initial.contextId);
+  await page.setViewportSize({width:844,height:390});
+  await page.waitForTimeout(150);
+  const changed=await snapshot();
+  expect(changed.contextId).toBe(initial.contextId);
+  expect(changed.step).toBeGreaterThanOrEqual(muted.step);
+  expect(await game(page,'return g.state')).toBe('playing');
+  expect(await page.evaluate(()=>localStorage.getItem('pang.music'))).toBe('off');
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Turn music on'})).toHaveText('Music off');
+});
+
+test('visibility interruption suspends and resumes music without resetting it',async({page})=>{
+  await page.goto('/');await page.getByRole('button',{name:'Start expedition'}).click();
+  const snapshot=()=>page.evaluate(async()=>(await import('/src/app.js')).music.snapshot());
+  const before=await snapshot();
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));});
+  await expect.poll(async()=>(await snapshot()).state).toBe('suspended');
+  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'));});
+  await expect.poll(async()=>(await snapshot()).state).toBe('running');
+  const after=await snapshot();expect(after.contextId).toBe(before.contextId);expect(after.step).toBeGreaterThanOrEqual(before.step);
+});
+
 test('continues without storage or Web Audio permissions',async({page})=>{
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.addInitScript(()=>{
@@ -49,9 +91,10 @@ test('continues without storage or Web Audio permissions',async({page})=>{
     Object.defineProperty(globalThis,'webkitAudioContext',{configurable:true,value:undefined});
   });
   await page.goto('/');
-  await page.getByRole('button',{name:'Enable sound'}).click();
-  await expect(page.getByRole('button',{name:'Enable sound'})).toHaveText('Sound off');
   await page.getByRole('button',{name:'Start expedition'}).click();
   expect(await game(page,'return g.state')).toBe('playing');
+  expect(await page.evaluate(async()=>(await import('/src/app.js')).music.snapshot().started)).toBe(false);
+  await expect(page.getByRole('button',{name:/Turn music/})).toBeVisible();
+  await expect(page.getByRole('button',{name:/sound/i})).toHaveCount(0);
   expect(errors).toEqual([]);
 });
