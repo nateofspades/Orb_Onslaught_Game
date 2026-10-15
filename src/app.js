@@ -4,11 +4,14 @@ import {readHighScore,writeHighScore} from './storage.js';
 export const game=new Game();game.loadLevel(0);
 export const input={left:false,right:false,fire:false};
 const $=id=>document.getElementById(id),canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
-let best=readHighScore(globalThis.localStorage),soundEnabled=false,audio;
+function browserStorage(){try{return globalThis.localStorage;}catch{return undefined;}}
+const storage=browserStorage();
+let best=readHighScore(storage),soundEnabled=false,audio;
 function resizeCanvas(){const r=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,3),w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}ctx.setTransform(w/WIDTH,0,0,h/HEIGHT,0,0);}
 new ResizeObserver(resizeCanvas).observe(canvas);window.addEventListener('resize',resizeCanvas);resizeCanvas();
-function tone(frequency,duration=.06){if(!soundEnabled)return;audio??=new AudioContext();const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.frequency.value=frequency;gain.gain.setValueAtTime(.055,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);oscillator.connect(gain).connect(audio.destination);oscillator.start();oscillator.stop(audio.currentTime+duration);}
-$('sound').addEventListener('click',async()=>{soundEnabled=!soundEnabled;$('sound').textContent=soundEnabled?'Sound on':'Sound off';$('sound').setAttribute('aria-label',soundEnabled?'Disable sound':'Enable sound');$('sound').setAttribute('aria-pressed',String(soundEnabled));if(soundEnabled){audio??=new AudioContext();await audio.resume();tone(660,.08);}});
+function soundLabel(){$('sound').textContent=soundEnabled?'Sound on':'Sound off';$('sound').setAttribute('aria-label',soundEnabled?'Disable sound':'Enable sound');$('sound').setAttribute('aria-pressed',String(soundEnabled));}
+function tone(frequency,duration=.06){if(!soundEnabled||!audio)return;try{const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.frequency.value=frequency;gain.gain.setValueAtTime(.055,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);oscillator.connect(gain).connect(audio.destination);oscillator.start();oscillator.stop(audio.currentTime+duration);}catch{/* Audio is optional. */}}
+$('sound').addEventListener('click',async()=>{if(soundEnabled){soundEnabled=false;soundLabel();return;}try{const Audio=globalThis.AudioContext||globalThis.webkitAudioContext;if(typeof Audio!=='function')throw new Error('Web Audio unavailable');audio??=new Audio();await audio.resume();soundEnabled=true;soundLabel();tone(660,.08);}catch{soundEnabled=false;audio=undefined;soundLabel();}});
 const keys=new Set(), pointers=new Map();
 function refreshKeys(){for(const [name,codes]of Object.entries({left:['ArrowLeft','KeyA'],right:['ArrowRight','KeyD'],fire:['Space']}))input[name]=codes.some(c=>keys.has(c))||[...pointers.values()].includes(name);}
 for(const name of ['left','right','fire']){
@@ -30,7 +33,7 @@ $('help').addEventListener('click',()=>{game.pause();clearInput();sync();$('titl
 $('primary').addEventListener('click',()=>{clearInput();if(game.state==='paused')game.resume();else if(game.state==='cleared')game.nextLevel();else if(['gameover','victory'].includes(game.state))game.restart();else game.start();sync();});
 let previous;
 let oldScore=0,oldLives=game.lives,oldState=game.state;
-function frame(now){const dt=previous===undefined?0:(now-previous)/1000;previous=now;game.advance(dt,input);if(game.score!==oldScore){tone(880);best=Math.max(best,game.score);writeHighScore(globalThis.localStorage,best);}if(game.lives<oldLives)tone(120,.18);if(game.state!==oldState&&['cleared','victory'].includes(game.state))tone(1040,.2);oldScore=game.score;oldLives=game.lives;oldState=game.state;resizeCanvas();draw(ctx,game,now/1000);sync();requestAnimationFrame(frame);}
+function frame(now){const dt=previous===undefined?0:(now-previous)/1000;previous=now;game.advance(dt,input);if(game.score!==oldScore){tone(880);best=Math.max(best,game.score);writeHighScore(storage,best);}if(game.lives<oldLives)tone(120,.18);if(game.state!==oldState&&['cleared','victory'].includes(game.state))tone(1040,.2);oldScore=game.score;oldLives=game.lives;oldState=game.state;resizeCanvas();draw(ctx,game,now/1000);sync();requestAnimationFrame(frame);}
 function sync(){
   $('score').textContent=String(game.score).padStart(5,'0');$('best').textContent=String(best).padStart(5,'0');$('timer').textContent=Math.ceil(game.timer);$('sector').textContent=`0${game.level+1} / 05`;
   $('lives').textContent='♥ '.repeat(game.lives).trim()||'—';$('lives').setAttribute('aria-label',`${game.lives} lives`);

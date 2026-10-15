@@ -41,3 +41,17 @@ test('starts a playable canvas, keyboard movement and sustained fire',async({pag
   expect(await game(page,'return g.shots.length')).toBeGreaterThan(0);
   await expect(page.locator('canvas')).toBeVisible();
 });
+test('continues without storage or Web Audio permissions',async({page})=>{
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.addInitScript(()=>{
+    Object.defineProperty(globalThis,'localStorage',{configurable:true,get(){throw new DOMException('denied','SecurityError');}});
+    Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:undefined});
+    Object.defineProperty(globalThis,'webkitAudioContext',{configurable:true,value:undefined});
+  });
+  await page.goto('/');
+  await page.getByRole('button',{name:'Enable sound'}).click();
+  await expect(page.getByRole('button',{name:'Enable sound'})).toHaveText('Sound off');
+  await page.getByRole('button',{name:'Start expedition'}).click();
+  expect(await game(page,'return g.state')).toBe('playing');
+  expect(errors).toEqual([]);
+});
