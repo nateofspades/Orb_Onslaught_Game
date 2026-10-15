@@ -15,7 +15,7 @@ export function calculateLayout(width,height){
   const safeHeight=Math.max(1,Number(height)||1);
   const compactLandscape=safeHeight<=480&&safeWidth>safeHeight;
   const gutter=safeWidth<=600?10:16;
-  const reservedHeight=compactLandscape?110:safeWidth<=600?220:250;
+  const reservedHeight=compactLandscape?(safeWidth<=460?154:110):safeWidth<=600?220:250;
   const availableWidth=Math.max(1,safeWidth-gutter*2);
   const availableHeight=Math.max(1,safeHeight-reservedHeight);
   const arenaWidth=Math.min(ARENA_WIDTH,availableWidth,availableHeight*ARENA_ASPECT);

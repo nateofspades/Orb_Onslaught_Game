@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {ARENA_ASPECT,calculateLayout,controlMetrics} from '../../src/layout.js';
 
-const viewports=[[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390]];
+const viewports=[[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390],[440,320]];
 
 describe('responsive arena layout',()=>{
   it.each(viewports)('fits the complete undistorted arena and chrome at %ix%i',(width,height)=>{
