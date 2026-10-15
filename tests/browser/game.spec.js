@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 async function boot(page){await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));await page.goto('/');}
 async function game(page,fn){return page.evaluate(async src=>{const {game}=await import('/src/app.js');return (new Function('g',src))(game);},fn);}
-for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390],[568,320]])test(`responsive DPR arena and accessible controls ${width}x${height}`,async({browser})=>{
+for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390],[568,320],[480,320]])test(`responsive DPR arena and accessible controls ${width}x${height}`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:2});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('requestfailed',r=>errors.push(r.url()));page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
  await page.goto('http://127.0.0.1:4173/');
  const dimensions=await page.locator('canvas').evaluate(c=>({w:c.width,h:c.height,rect:c.getBoundingClientRect().toJSON(),dpr:devicePixelRatio,sw:document.documentElement.scrollWidth,sh:document.documentElement.scrollHeight}));
