@@ -1,0 +1,10 @@
+import { spawnSync } from 'node:child_process';
+import { appendFileSync, mkdirSync } from 'node:fs';
+const [phase, name, ...args] = process.argv.slice(2);
+const command = args.length ? ['npx', ['playwright', 'test', ...args]] : ['npm', ['test']];
+const r = spawnSync(command[0], command[1], { encoding: 'utf8' });
+const output = (r.stdout || '') + (r.stderr || '');
+process.stdout.write(output);
+mkdirSync('docs', {recursive:true});
+appendFileSync('docs/tdd-log.md', `\n## ${phase}: ${name}\n\nCommand: \`${command[0]} ${command[1].join(' ')}\`\nExit: ${r.status}\n\n\`\`\`text\n${output.replace(/\u001b\[[0-9;]*m/g,'')}\n\`\`\`\n`);
+if ((phase === 'RED' && r.status === 0) || (phase === 'GREEN' && r.status !== 0)) process.exit(1);
