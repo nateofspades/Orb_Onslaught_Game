@@ -54,6 +54,9 @@ try {
         await start.click();
         await page.waitForTimeout(350);
         const metrics = await inspect('active');
+        if (process.env.PANG_AUDIT_SCREENSHOTS === '1') {
+          await page.screenshot({ path: `test-results/visual/${width}x${height}-dpr${deviceScaleFactor}.png` });
+        }
         const palette = await canvas.evaluate(element => {
           const { data } = element.getContext('2d').getImageData(0, 0, element.width, element.height);
           const colors = new Set();
@@ -76,6 +79,16 @@ try {
         await restart.click();
         await page.waitForTimeout(100);
         await inspect('restarted');
+        const instructions = page.getByRole('button', { name: /^instructions\b/i }).first();
+        assert.ok(await instructions.isVisible(), `${width}x${height}: accessible Instructions control missing`);
+        await instructions.click();
+        await page.waitForTimeout(100);
+        await inspect('instructions');
+        const closeGuide = page.getByRole('button', { name: /^resume\b/i }).first();
+        assert.ok(await closeGuide.isVisible(), `${width}x${height}: instructions have no accessible way back`);
+        await closeGuide.click();
+        await page.waitForTimeout(100);
+        await inspect('instructions-closed');
         assert.deepEqual(errors, [], `${width}x${height}: browser errors`);
         results.push({ width, height, dpr: deviceScaleFactor, canvas: metrics.canvas, visibleButtons: metrics.buttons.length, sampledColors: palette, errors: 0 });
         console.log(`PASS ${width}x${height} DPR ${deviceScaleFactor}: ready, active, paused, resumed, restarted canvas and every visible button fit; ${palette} sampled colors; no browser/request errors`);

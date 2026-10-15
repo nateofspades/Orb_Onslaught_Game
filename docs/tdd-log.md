@@ -953,3 +953,120 @@ Running 1 test using 1 worker
   1 passed (31.8s)
 
 ```
+
+## RED: multitouch
+
+Command: `npx playwright test --grep real simultaneous`
+Exit: 1
+
+```text
+
+Running 1 test using 1 worker
+
+  ✘  1 tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick (8.1s)
+
+
+  1) tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 570
+    Received:   480
+
+       8 |   const touches=[{id:1,x:a.x+a.width/2,y:a.y+a.height/2},{id:2,x:b.x+b.width/2,y:b.y+b.height/2}];
+       9 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:touches});await page.clock.runFor(400);
+    > 10 |   expect(await game(page,'return g.player.x')).toBeGreaterThan(570);expect(await game(page,'return g.shots.length')).toBeGreaterThan(0);
+         |                                                ^
+      11 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[touches[1]]});const x=await game(page,'return g.player.x');await page.clock.runFor(200);expect(await game(page,'return g.player.x')).toBe(x);
+      12 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
+      13 |   expect(await page.evaluate(async()=>Object.values((await import('/src/app.js')).input).some(Boolean))).toBe(false);
+        at /root/pang_game/tests/browser/game.spec.js:10:48
+
+    Error Context: test-results/game-real-simultaneous-two-e8672-ease-and-cancel-never-stick/error-context.md
+
+  1 failed
+    tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick
+
+```
+
+## GREEN: multitouch
+
+Command: `npx playwright test --grep real simultaneous`
+Exit: 1
+
+```text
+
+Running 1 test using 1 worker
+
+  ✘  1 tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick (10.2s)
+
+
+  1) tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 595
+    Received: 657.5
+
+       9 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:touches});await page.clock.runFor(400);
+      10 |   expect(await game(page,'return g.player.x')).toBeGreaterThan(570);expect(await game(page,'return g.shots.length')).toBeGreaterThan(0);
+    > 11 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[touches[1]]});const x=await game(page,'return g.player.x');await page.clock.runFor(200);expect(await game(page,'return g.player.x')).toBe(x);
+         |                                                                                                                                                                                                                ^
+      12 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
+      13 |   expect(await page.evaluate(async()=>Object.values((await import('/src/app.js')).input).some(Boolean))).toBe(false);
+      14 | });
+        at /root/pang_game/tests/browser/game.spec.js:11:208
+
+    Error Context: test-results/game-real-simultaneous-two-e8672-ease-and-cancel-never-stick/error-context.md
+
+  1 failed
+    tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick
+
+```
+
+## GREEN: multitouch-release-protocol
+
+Command: `npx playwright test --grep real simultaneous`
+Exit: 1
+
+```text
+
+Running 1 test using 1 worker
+
+  ✘  1 tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick (14.9s)
+
+
+  1) tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick
+
+    Error: cdpSession.send: Protocol error (Input.dispatchTouchEvent): Must send a TouchStart first to start a new touch.
+
+      10 |   expect(await game(page,'return g.player.x')).toBeGreaterThan(570);expect(await game(page,'return g.shots.length')).toBeGreaterThan(0);
+      11 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});const x=await game(page,'return g.player.x');await page.clock.runFor(200);expect(await game(page,'return g.player.x')).toBe(x);
+    > 12 |   await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
+         |             ^
+      13 |   expect(await page.evaluate(async()=>Object.values((await import('/src/app.js')).input).some(Boolean))).toBe(false);
+      14 | });
+      15 | test('pauses, resumes, restarts, shows instructions and pauses on visibility loss',async({page})=>{
+        at /root/pang_game/tests/browser/game.spec.js:12:13
+
+    Error Context: test-results/game-real-simultaneous-two-e8672-ease-and-cancel-never-stick/error-context.md
+
+  1 failed
+    tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick
+
+```
+
+## GREEN: multitouch
+
+Command: `npx playwright test --grep real simultaneous`
+Exit: 0
+
+```text
+
+Running 1 test using 1 worker
+
+  ✓  1 tests/browser/game.spec.js:4:1 › real simultaneous two-finger touch moves and shoots, release and cancel never stick (12.7s)
+
+  1 passed (33.1s)
+
+```
