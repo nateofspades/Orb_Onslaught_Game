@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 async function boot(page){await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));await page.goto('/');}
 async function game(page,fn){return page.evaluate(async src=>{const {game}=await import('/src/app.js');return (new Function('g',src))(game);},fn);}
-for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390]])test(`responsive DPR arena and accessible controls ${width}x${height}`,async({browser})=>{
+for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390],[568,320]])test(`responsive DPR arena and accessible controls ${width}x${height}`,async({browser})=>{
  const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:2});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('requestfailed',r=>errors.push(r.url()));page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
  await page.goto('http://127.0.0.1:4173/');
  const dimensions=await page.locator('canvas').evaluate(c=>({w:c.width,h:c.height,rect:c.getBoundingClientRect().toJSON(),dpr:devicePixelRatio,sw:document.documentElement.scrollWidth,sh:document.documentElement.scrollHeight}));
@@ -11,8 +11,9 @@ for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568
  for(const r of Object.values(boxes)){expect(r.x).toBeGreaterThanOrEqual(0);expect(r.y).toBeGreaterThanOrEqual(0);expect(r.x+r.width).toBeLessThanOrEqual(width);expect(r.y+r.height).toBeLessThanOrEqual(height);}
  expect(Math.min(boxes.left.y,boxes.right.y,boxes.fire.y)).toBeGreaterThanOrEqual(dimensions.rect.y+dimensions.rect.height);
  expect(await page.locator('#left').evaluate(element=>getComputedStyle(element).touchAction)).toBe('none');
- if(width<=844&&(width<=600||height<=480)){for(const id of ['#left','#right','#fire']){const r=await page.locator(id).boundingBox();expect(r.height).toBeGreaterThanOrEqual(64);}expect((await page.locator('#left').boundingBox()).width).toBeGreaterThanOrEqual(64);expect((await page.locator('#right').boundingBox()).width).toBeGreaterThanOrEqual(64);}
- if(width===844){const left=await page.locator('#left').boundingBox(),fire=await page.locator('#fire').boundingBox();expect(left.x).toBeLessThan(width/2);expect(fire.x).toBeGreaterThan(width/2);expect(dimensions.rect.width).toBeGreaterThanOrEqual(520);expect(await page.locator('#pause').isVisible()).toBe(true);expect(await page.locator('#restart').isVisible()).toBe(true);}
+ if(width<=844&&(width<=600||height<=480)){for(const id of ['left','right','fire'])expect(boxes[id].height).toBeGreaterThanOrEqual(64);expect(boxes.left.width).toBeGreaterThanOrEqual(64);expect(boxes.right.width).toBeGreaterThanOrEqual(64);}
+ if(height<=480&&width>height){const ids=['left','right','pause','restart','music','help','fire'];for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){const a=boxes[ids[i]],b=boxes[ids[j]],overlap=a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top;expect(overlap,`${ids[i]} overlaps ${ids[j]}`).toBe(false);}}
+ if(width===844){expect(boxes.left.x).toBeLessThan(width/2);expect(boxes.fire.x).toBeGreaterThan(width/2);expect(dimensions.rect.width).toBeGreaterThanOrEqual(520);expect(await page.evaluate(()=>['pause','restart'].every(id=>getComputedStyle(document.getElementById(id)).visibility==='visible'))).toBe(true);}
  await page.getByRole('button',{name:'Start expedition'}).click();await page.waitForTimeout(250);expect(errors).toEqual([]);await context.close();
 });
 test('real simultaneous two-finger touch moves and shoots, release and cancel never stick',async({page,context})=>{
