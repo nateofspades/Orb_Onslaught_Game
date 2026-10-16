@@ -1,4 +1,5 @@
 export const MUSIC_PREFERENCE_KEY='pang.music';
+export const MUSIC_MASTER_VOLUME=.28;
 const notes={C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196,A3:220,B3:246.94,C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,B4:493.88,C5:523.25,D5:587.33,E5:659.25,G5:783.99};
 const line=values=>values.split(' ').map(value=>value==='-'?null:notes[value]);
 export const ORIGINAL_SCORE=Object.freeze({
@@ -41,7 +42,7 @@ export class MusicController{
       this.context=new this.AudioContext();
       this.contextId=nextContextId++;
       this.master=this.context.createGain();
-      this.master.gain.value=this.enabled?.12:0;
+      this.master.gain.value=this.enabled?MUSIC_MASTER_VOLUME:0;
       this.master.connect(this.context.destination);
       this.started=true;
       this.nextStepTime=this.context.currentTime+.03;
@@ -59,8 +60,11 @@ export class MusicController{
     }
   }
   async recover(){
-    if(!this.context||this.context.state==='running')return;
-    try{await this.context.resume();}catch{/* Music remains optional if the browser denies resume. */}
+    if(!this.context)return;
+    try{
+      if(this.context.state!=='running')await this.context.resume();
+      if(this.master)this.master.gain.value=this.enabled?MUSIC_MASTER_VOLUME:0;
+    }catch{/* Music remains optional if the browser denies resume. */}
   }
   setEnabled(enabled){
     this.enabled=Boolean(enabled);
@@ -69,14 +73,14 @@ export class MusicController{
       const now=this.context.currentTime;
       this.master.gain.cancelScheduledValues?.(now);
       this.master.gain.setValueAtTime?.(this.master.gain.value,now);
-      this.master.gain.linearRampToValueAtTime?.(this.enabled?.12:0,now+.04);
+      this.master.gain.linearRampToValueAtTime?.(this.enabled?MUSIC_MASTER_VOLUME:0,now+.04);
     }
     return this.enabled;
   }
   toggle(){return this.setEnabled(!this.enabled);}
   async handleVisibility(hidden){
     if(!this.started||!this.context)return;
-    try{if(hidden)await this.context.suspend();else await this.context.resume();}catch{/* Audio interruption is non-fatal. */}
+    try{if(hidden)await this.context.suspend();else await this.recover();}catch{/* Audio interruption is non-fatal. */}
   }
   schedule(){
     if(!this.started||!this.context||this.context.state!=='running')return;

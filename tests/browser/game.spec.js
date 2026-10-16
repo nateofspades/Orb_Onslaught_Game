@@ -48,6 +48,31 @@ test('starts a playable canvas, keyboard movement and sustained fire',async({pag
   expect(await game(page,'return g.shots.length')).toBeGreaterThan(0);
   await expect(page.locator('canvas')).toBeVisible();
 });
+for(const device of [
+  {name:'desktop',viewport:{width:1366,height:768},hasTouch:false},
+  {name:'mobile',viewport:{width:390,height:844},hasTouch:true},
+])test(`music volume activates and toggles at the high target on ${device.name}`,async({browser},testInfo)=>{
+  testInfo.setTimeout(60_000);
+  const context=await browser.newContext({viewport:device.viewport,hasTouch:device.hasTouch,isMobile:device.hasTouch});
+  const page=await context.newPage();
+  await page.goto('http://127.0.0.1:4173/');
+  const volume=()=>page.evaluate(async()=>{
+    const {music}=await import('/src/app.js');
+    const {MUSIC_MASTER_VOLUME}=await import('/src/music.js');
+    return {actual:music.master?.gain.value??null,target:MUSIC_MASTER_VOLUME,state:music.snapshot().state};
+  });
+  const primary=page.getByRole('button',{name:'Start expedition'});
+  if(device.hasTouch)await primary.tap({force:true});else await primary.click();
+  await expect.poll(async()=>await volume()).toMatchObject({target:.28,state:'running'});
+  await expect.poll(async()=>(await volume()).actual).toBeCloseTo(.28,5);
+  const off=page.getByRole('button',{name:'Turn music off'});
+  if(device.hasTouch)await off.tap({force:true});else await off.click();
+  await expect.poll(async()=>(await volume()).actual).toBeCloseTo(0,5);
+  const on=page.getByRole('button',{name:'Turn music on'});
+  if(device.hasTouch)await on.tap({force:true});else await on.click();
+  await expect.poll(async()=>(await volume()).actual).toBeCloseTo(.28,5);
+  await context.close();
+});
 test('music starts only after interaction and keeps one transport through UI and orientation changes',async({page})=>{
   await page.goto('/');
   const snapshot=()=>page.evaluate(async()=>(await import('/src/app.js')).music.snapshot());

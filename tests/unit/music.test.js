@@ -1,5 +1,6 @@
 import {describe,expect,it,vi} from 'vitest';
 import {
+  MUSIC_MASTER_VOLUME,
   MUSIC_PREFERENCE_KEY,
   ORIGINAL_SCORE,
   MusicController,
@@ -80,6 +81,13 @@ describe('music preference',()=>{
 });
 
 describe('music transport',()=>{
+  it('starts enabled at the central high-volume target',async()=>{
+    const {music}=harness();
+    expect(MUSIC_MASTER_VOLUME).toBe(.28);
+    await music.start();
+    expect(music.master.gain.value).toBe(MUSIC_MASTER_VOLUME);
+  });
+
   it('starts once after interaction and schedules one continuous transport',async()=>{
     const {music,intervals}=harness();
     expect(music.snapshot().started).toBe(false);
@@ -99,13 +107,25 @@ describe('music transport',()=>{
     intervals[0]();
     const before=music.snapshot();
     music.setEnabled(false);
+    expect(music.master.gain.value).toBe(0);
     context.currentTime=2;
     intervals[0]();
     const muted=music.snapshot();
     expect(muted.contextId).toBe(before.contextId);
     expect(muted.step).toBeGreaterThan(before.step);
     music.setEnabled(true);
+    expect(music.master.gain.value).toBe(MUSIC_MASTER_VOLUME);
     expect(music.snapshot().step).toBe(muted.step);
+  });
+
+  it('recovers the enabled master volume after an audio interruption',async()=>{
+    const {music}=harness();
+    await music.start();
+    music.master.gain.value=.01;
+    music.context.state='suspended';
+    await music.start();
+    expect(music.context.state).toBe('running');
+    expect(music.master.gain.value).toBe(MUSIC_MASTER_VOLUME);
   });
 
   it('suspends while hidden and resumes the same transport when visible',async()=>{
@@ -114,8 +134,10 @@ describe('music transport',()=>{
     const before=music.snapshot();
     await music.handleVisibility(true);
     expect(FakeAudioContext.instances[0].state).toBe('suspended');
+    music.master.gain.value=.01;
     await music.handleVisibility(false);
     expect(FakeAudioContext.instances[0].state).toBe('running');
+    expect(music.master.gain.value).toBe(MUSIC_MASTER_VOLUME);
     expect(music.snapshot().contextId).toBe(before.contextId);
     expect(music.snapshot().step).toBe(before.step);
   });
