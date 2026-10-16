@@ -83,7 +83,7 @@ describe('music preference',()=>{
 describe('music transport',()=>{
   it('starts enabled at the central high-volume target',async()=>{
     const {music}=harness();
-    expect(MUSIC_MASTER_VOLUME).toBe(.28);
+    expect(MUSIC_MASTER_VOLUME).toBe(.50);
     await music.start();
     expect(music.master.gain.value).toBe(MUSIC_MASTER_VOLUME);
   });
@@ -126,6 +126,31 @@ describe('music transport',()=>{
     await music.start();
     expect(music.context.state).toBe('running');
     expect(music.master.gain.value).toBe(MUSIC_MASTER_VOLUME);
+  });
+
+  it('suspends for a game pause and resumes the same transport only when visible',async()=>{
+    const {music}=harness();
+    await music.start();
+    const before=music.snapshot();
+    await music.setGamePaused(true);
+    expect(music.snapshot().state).toBe('suspended');
+    music.setEnabled(false);
+    await music.handleVisibility(true);
+    await music.setGamePaused(false);
+    expect(music.snapshot().state).toBe('suspended');
+    await music.handleVisibility(false);
+    expect(music.snapshot()).toMatchObject({state:'running',enabled:false,contextId:before.contextId,step:before.step});
+    expect(music.master.gain.value).toBe(0);
+  });
+
+  it('does not start playback while the game is already paused',async()=>{
+    const {music}=harness();
+    await music.setGamePaused(true);
+    await music.start();
+    expect(music.snapshot().state).toBe('suspended');
+    const paused=music.snapshot();
+    await music.setGamePaused(false);
+    expect(music.snapshot()).toMatchObject({state:'running',contextId:paused.contextId,step:paused.step});
   });
 
   it('suspends while hidden and resumes the same transport when visible',async()=>{

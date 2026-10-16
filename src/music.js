@@ -1,5 +1,5 @@
 export const MUSIC_PREFERENCE_KEY='pang.music';
-export const MUSIC_MASTER_VOLUME=.28;
+export const MUSIC_MASTER_VOLUME=.50;
 const notes={C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196,A3:220,B3:246.94,C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,B4:493.88,C5:523.25,D5:587.33,E5:659.25,G5:783.99};
 const line=values=>values.split(' ').map(value=>value==='-'?null:notes[value]);
 export const ORIGINAL_SCORE=Object.freeze({
@@ -32,6 +32,8 @@ export class MusicController{
     this.absoluteStep=0;
     this.nextStepTime=0;
     this.contextId=null;
+    this.gamePaused=false;
+    this.hidden=false;
     this.stepDuration=60/ORIGINAL_SCORE.bpm/4;
   }
   snapshot(){return {started:this.started,enabled:this.enabled,step:this.absoluteStep,contextId:this.contextId,state:this.context?.state??'idle',error:this.error??null};}
@@ -46,7 +48,7 @@ export class MusicController{
       this.master.connect(this.context.destination);
       this.started=true;
       this.nextStepTime=this.context.currentTime+.03;
-      const resumed=this.context.resume();
+      const resumed=this.gamePaused||this.hidden?Promise.resolve():this.context.resume();
       this.schedule();
       this.timer=this.setTimer(()=>this.schedule(),25);
       Promise.resolve(resumed).then(()=>this.schedule()).catch(()=>{});
@@ -60,7 +62,7 @@ export class MusicController{
     }
   }
   async recover(){
-    if(!this.context)return;
+    if(!this.context||this.gamePaused||this.hidden)return;
     try{
       if(this.context.state!=='running')await this.context.resume();
       if(this.master)this.master.gain.value=this.enabled?MUSIC_MASTER_VOLUME:0;
@@ -78,9 +80,20 @@ export class MusicController{
     return this.enabled;
   }
   toggle(){return this.setEnabled(!this.enabled);}
+  async setGamePaused(paused){
+    this.gamePaused=Boolean(paused);
+    await this.updatePlayback();
+  }
   async handleVisibility(hidden){
+    this.hidden=Boolean(hidden);
+    await this.updatePlayback();
+  }
+  async updatePlayback(){
     if(!this.started||!this.context)return;
-    try{if(hidden)await this.context.suspend();else await this.recover();}catch{/* Audio interruption is non-fatal. */}
+    try{
+      if(this.gamePaused||this.hidden){if(this.context.state!=='suspended')await this.context.suspend();}
+      else await this.recover();
+    }catch{/* Audio interruption is non-fatal. */}
   }
   schedule(){
     if(!this.started||!this.context||this.context.state!=='running')return;

@@ -25,10 +25,19 @@ function resizeCanvas(){
   if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   ctx.setTransform(width/WIDTH,0,0,height/HEIGHT,0,0);
 }
-function responsiveLayout(){applyLayout(shell,innerWidth,innerHeight);resizeCanvas();}
+function viewportSize(){
+  const viewport=globalThis.visualViewport;
+  return {
+    width:document.documentElement.clientWidth||viewport?.width||globalThis.innerWidth,
+    height:viewport?.height||document.documentElement.clientHeight||globalThis.innerHeight,
+  };
+}
+function responsiveLayout(){const {width,height}=viewportSize();applyLayout(shell,width,height);resizeCanvas();}
 new ResizeObserver(resizeCanvas).observe(canvas);
 window.addEventListener('resize',responsiveLayout);
 window.addEventListener('orientationchange',responsiveLayout);
+window.addEventListener('pageshow',responsiveLayout);
+globalThis.visualViewport?.addEventListener('resize',responsiveLayout);
 responsiveLayout();
 
 function musicLabel(){
@@ -131,6 +140,7 @@ function sync(){
   $('pause').setAttribute('aria-label',game.state==='paused'?'Resume game':'Pause game');
   if(sync.state!==game.state){
     sync.state=game.state;
+    music.setGamePaused(game.state==='paused');
     const views={
       ready:['ARCADE / EXPEDITION 001','Chase the aurora.','Split the spheres. Keep your footing. Five sectors. Three lives. One expedition.','Start expedition'],
       paused:['EXPEDITION ON HOLD','Take a breath.','Your expedition is paused. Resume when you are ready.','Resume expedition'],

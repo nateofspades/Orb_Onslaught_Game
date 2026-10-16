@@ -16,6 +16,30 @@ for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568
  if(width===844){expect(boxes.left.x).toBeLessThan(width/2);expect(boxes.fire.x).toBeGreaterThan(width/2);expect(dimensions.rect.width).toBeGreaterThanOrEqual(520);expect(await page.evaluate(()=>['pause','restart'].every(id=>getComputedStyle(document.getElementById(id)).visibility==='visible'))).toBe(true);}
  await page.getByRole('button',{name:'Start expedition'}).click();await page.waitForTimeout(250);expect(errors).toEqual([]);await context.close();
 });
+for(const [width,height,expectedArenaWidth,expectedShellWidth]of [[390,844,370,370],[844,390,522.6666666667,824]])test(`fresh mobile load sizes the complete arena at ${width}x${height} before resize`,async({browser})=>{
+  const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:2,hasTouch:true,isMobile:true});
+  const page=await context.newPage();
+  await page.goto('http://127.0.0.1:4173/');
+  const metrics=await page.evaluate(()=>({
+    innerWidth,
+    innerHeight,
+    clientWidth:document.documentElement.clientWidth,
+    clientHeight:document.documentElement.clientHeight,
+    scrollWidth:document.documentElement.scrollWidth,
+    shell:document.querySelector('.shell').getBoundingClientRect().toJSON(),
+    arena:document.querySelector('.arena').getBoundingClientRect().toJSON(),
+    canvas:document.querySelector('canvas').getBoundingClientRect().toJSON(),
+  }));
+  expect(metrics.clientWidth).toBe(width);
+  expect(metrics.clientHeight).toBe(height);
+  expect(metrics.innerWidth).toBe(width);
+  expect(metrics.innerHeight).toBe(height);
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(width);
+  expect(metrics.shell.width).toBeCloseTo(expectedShellWidth,0);
+  expect(metrics.arena.width).toBeCloseTo(expectedArenaWidth,0);
+  expect(metrics.canvas.width/metrics.canvas.height).toBeCloseTo(840/450,2);
+  await context.close();
+});
 test('real simultaneous two-finger touch moves and shoots, release and cancel never stick',async({page,context})=>{
   await page.setViewportSize({width:390,height:844});await boot(page);await page.getByRole('button',{name:'Start expedition'}).click();
   const cdp=await context.newCDPSession(page);await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
@@ -63,14 +87,49 @@ for(const device of [
   });
   const primary=page.getByRole('button',{name:'Start expedition'});
   if(device.hasTouch)await primary.tap({force:true});else await primary.click();
-  await expect.poll(async()=>await volume()).toMatchObject({target:.28,state:'running'});
-  await expect.poll(async()=>(await volume()).actual).toBeCloseTo(.28,5);
+  await expect.poll(async()=>await volume()).toMatchObject({target:.50,state:'running'});
+  await expect.poll(async()=>(await volume()).actual).toBeCloseTo(.50,5);
   const off=page.getByRole('button',{name:'Turn music off'});
   if(device.hasTouch)await off.tap({force:true});else await off.click();
   await expect.poll(async()=>(await volume()).actual).toBeCloseTo(0,5);
   const on=page.getByRole('button',{name:'Turn music on'});
   if(device.hasTouch)await on.tap({force:true});else await on.click();
-  await expect.poll(async()=>(await volume()).actual).toBeCloseTo(.28,5);
+  await expect.poll(async()=>(await volume()).actual).toBeCloseTo(.50,5);
+  await context.close();
+});
+for(const device of [
+  {name:'desktop',viewport:{width:1366,height:768},hasTouch:false},
+  {name:'mobile',viewport:{width:390,height:844},hasTouch:true},
+])test(`game pause suspends music and resumes its same transport on ${device.name}`,async({browser})=>{
+  const context=await browser.newContext({viewport:device.viewport,hasTouch:device.hasTouch,isMobile:device.hasTouch});
+  const page=await context.newPage();
+  await page.addInitScript(()=>{
+    class Param{constructor(value=0){this.value=value;}setValueAtTime(value){this.value=value;}linearRampToValueAtTime(value){this.value=value;}exponentialRampToValueAtTime(value){this.value=value;}cancelScheduledValues(){}}
+    class Node{connect(){return this;}}
+    class FakeAudioContext{
+      constructor(){this.currentTime=0;this.state='suspended';this.destination=new Node();}
+      createGain(){const node=new Node();node.gain=new Param(1);return node;}
+      createOscillator(){const node=new Node();node.frequency=new Param();node.start=()=>{};node.stop=()=>{};return node;}
+      resume(){this.state='running';return Promise.resolve();}
+      suspend(){this.state='suspended';return Promise.resolve();}
+    }
+    Object.defineProperty(globalThis,'AudioContext',{configurable:true,value:FakeAudioContext});
+  });
+  await page.goto('/');
+  const snapshot=()=>page.evaluate(async()=>(await import('/src/app.js')).music.snapshot());
+  const start=page.getByRole('button',{name:'Start expedition'});
+  if(device.hasTouch)await start.tap({force:true});else await start.click();
+  await expect.poll(async()=>(await snapshot()).state).toBe('running');
+  const before=await snapshot();
+  const pause=page.getByRole('button',{name:'Pause game'});
+  if(device.hasTouch)await pause.tap({force:true});else await pause.click();
+  await expect.poll(async()=>(await snapshot()).state).toBe('suspended');
+  const paused=await snapshot();
+  expect(paused.contextId).toBe(before.contextId);
+  const resume=page.getByRole('button',{name:'Resume expedition'});
+  if(device.hasTouch)await resume.tap({force:true});else await resume.click();
+  await expect.poll(async()=>(await snapshot()).state).toBe('running');
+  expect((await snapshot()).contextId).toBe(before.contextId);
   await context.close();
 });
 test('music starts only after interaction and keeps one transport through UI and orientation changes',async({page})=>{
@@ -98,13 +157,15 @@ test('music starts only after interaction and keeps one transport through UI and
   await expect(page.getByRole('button',{name:'Turn music on'})).toHaveText('Music off');
 });
 
-test('visibility interruption suspends and resumes music without resetting it',async({page})=>{
+test('visibility interruption keeps music suspended until the paused game resumes',async({page})=>{
   await page.goto('/');await page.getByRole('button',{name:'Start expedition'}).click();
   const snapshot=()=>page.evaluate(async()=>(await import('/src/app.js')).music.snapshot());
   const before=await snapshot();
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));});
   await expect.poll(async()=>(await snapshot()).state).toBe('suspended');
   await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'));});
+  await expect.poll(async()=>(await snapshot()).state).toBe('suspended');
+  await page.getByRole('button',{name:'Resume expedition'}).click();
   await expect.poll(async()=>(await snapshot()).state).toBe('running');
   const after=await snapshot();expect(after.contextId).toBe(before.contextId);expect(after.step).toBeGreaterThanOrEqual(before.step);
 });
