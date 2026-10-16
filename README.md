@@ -1,6 +1,6 @@
 # Pang: Aurora Expedition
 
-**Live game:** https://nateofspades.github.io/pang_game/
+**Play now:** https://nateofspades.github.io/pang_game/
 
 ![Pang active gameplay on desktop](assets/screenshots/gameplay.png)
 
