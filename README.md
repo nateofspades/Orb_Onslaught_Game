@@ -1,85 +1,42 @@
-# Pang: Aurora Expedition
+# Aurora Field Study — private preparation
 
-**Play now:** https://nateofspades.github.io/pang_game/
+This is the existing game, edited in place on a private local preparation branch, not recreated. “Aurora Field Study” / “FIELD” are neutral internal working labels, not a cleared or published brand. No new public deployment, repository rename or push is authorized by this checkout.
 
-![Pang active gameplay on desktop](assets/screenshots/gameplay.png)
+![Private local gameplay](assets/screenshots/gameplay.png)
 
-A fast Canvas arcade expedition: split bouncing spheres with upward harpoons, dodge the fragments, and clear five aurora-lit sectors before time expires.
+## Retained original design and focused changes
 
-## Features
+The custom parka/visor explorer, aurora ribbons, snowy mountains/pines, frozen observation base, orbit-marked spheres, particle palette and all five source-defined platform layouts are retained. The existing screenshot and Canvas source were inspected before choosing a narrow visual change: the pointed upward harpoon head becomes a circular light pulse with a travelling dashed tether. This changes drawing only; the shot still follows the exact existing collision line, speed, cooldown and platform blocking rules. No new art/audio dependency or mechanics system was introduced.
 
-- Five increasingly difficult sectors with platforms, timers, particles, scoring, three lives, and temporary invulnerability.
-- Large spheres split into faster medium and small spheres; the smallest disappear.
-- Responsive high-DPI Canvas that always preserves the complete 840:450 arena without cropping or distortion.
-- Persistent local high score and music preference.
-- Start, pause/resume, restart, game-over, level-clear, and victory states without resetting the music transport.
-- Large touch controls with independent pointer tracking for simultaneous movement and firing.
+The five retained sectors are First light, The crossing, Twin peaks, Skyline and Aurora. Large spheres split twice; small spheres disappear. Existing score, three lives, timers, invulnerability, pause, game-over, sector-clear, victory and restart behavior are unchanged. `src/engine.js`, `src/music.js`, `src/layout.js`, `src/storage.js` and `style.css` remain byte-identical to baseline `2e00cd379887a1f180d459b5724a3a97e8d50551`.
 
-## Controls
+## Controls and continuity
 
-Clear every sphere before the timer expires. Avoid touching spheres; a hit costs one life and briefly grants invulnerability. Platforms stop harpoons and redirect spheres.
+- A/D or left/right arrows move; hold Space or FIRE to emit upward pulses.
+- Touch: hold a direction and FIRE together with separate fingers.
+- P / Esc or the pause control pauses/resumes; R or restart starts a fresh run.
+- Music on/off restores or mutes the same transport. Explicit gameplay pause suspends audio; resume continues the same context/position. Restart, menus, sector changes and resizing do not replace the transport.
 
-### Desktop keyboard
+Legacy `pang.highScore` and `pang.music` keys are intentionally preserved, not used as new branding. Existing data survives same-origin reloads. A different deployment origin does not automatically inherit localStorage; cross-origin transfer needs a separate consented, tested design.
 
-- Move: **A / D** or **← / →**
-- Fire: hold **Space**
-- Pause/resume: **P** or **Esc**
-- Restart: **R** or the restart button
+## Music and chain of title
 
-### Mobile and touch
+“Polar Circuit” and its playback implementation are unchanged. The existing [music provenance](docs/music-provenance.md) records the author's original-composition/repository-owned assertions; they are not independent musicological or ownership clearance. That document explicitly asserts no separate open-source license. No general code/art repository license was found. This is a chain-of-title/documentation gap to resolve with the requesting owner, **not** a finding that the requester lacks rights in their own work. No license has been invented or added.
 
-- Hold the large **←** or **→** thumb target with one finger.
-- Hold **FIRE** with another finger to move and shoot at the same time.
-- Pause and restart use the two smaller center buttons in portrait.
-- In short landscape, movement remains on the left, FIRE on the right, and music/help remain centered and reachable.
+## Local development and private verification
 
-Touch actions are captured by the controls to prevent page scrolling while playing. Orientation changes preserve the current game and music state.
-
-## Music
-
-**Polar Circuit** is an original fast-paced retro-arcade instrumental composed programmatically for this project. Its 64-step melody, bass line, pulse percussion, and arrangement are generated in `src/music.js` using Web Audio oscillators; it contains no samples, recordings, third-party music, or adapted melodies.
-
-Music begins only after a browser interaction. **Music on/off** changes gain without rebuilding or rewinding the transport, and the preference is saved in localStorage. The single music engine continues across menus, pause, restart, game over, sector changes, resize, and orientation changes; background visibility interruptions suspend and resume the same transport. Gameplay intentionally has no scoring, collision, clear, or button sound effects.
-
-See [music provenance](docs/music-provenance.md) for the authorship and licensing record.
-
-## Local setup
-
-Requires Node.js 22.22 or newer. There are no runtime packages or build step.
+This static project has no production build step or runtime packages. Node.js 22.22 or newer is required by the existing project.
 
 ```sh
 npm ci
-npx playwright install chromium
-npm run dev
-```
-
-Open http://127.0.0.1:4173.
-
-## Tests
-
-```sh
+PORT=4193 npm run dev
 npm test
 npm run test:e2e
 npm run test:all
 ```
 
-Vitest covers game rules, physics, persistence, the music transport/composition helpers, and responsive layout calculations. Playwright uses one browser worker and covers keyboard controls, real two-finger touch, music lifecycle and preference, visibility interruption, denied storage/audio, game states, console/network failures, DPR rendering, overflow, target sizing, and these required viewports:
+Private Playwright uses `http://127.0.0.1:4193`, explicit `PORT=4193`, one worker and **no server reuse**. The original server on 4173 must remain untouched. Existing manual browser contexts explicitly receive baseURL and tests navigate relative to it; an added test reads the exact served renderer back and compares it with this worktree's file, preventing false verification of an old checkout. All preparation test/server/browser execution must hold `/root/arcade-migration-audit/preparation/test.lock` with `flock`.
 
-- 1920×1080 desktop
-- 1366×768 laptop
-- 768×1024 tablet portrait
-- 390×844 mobile portrait
-- 320×568 small mobile portrait
-- 844×390 mobile landscape
+Existing coverage includes real simultaneous two-finger touch, keyboard/fire/restart, Web Audio gain and lifecycle, preference persistence, denied storage/audio, DPR/layout and nine sizes. Added preparation coverage checks neutral presentation, actual pulse drawing/render purity, isolated server configuration, legacy records, six orientation/state cases and captures of all five sectors. Required viewports: 1920×1080, 1366×768, 768×1024, 390×844, 320×568 and 844×390. Screenshots use the real application/renderer with a paused browser clock and explicitly seeded level/player data, not fabricated images.
 
-GitHub Actions runs both Vitest and Playwright for pushes to `main` and pull requests.
-
-## Technology
-
-HTML5, CSS, vanilla ES modules, Canvas 2D, Web Audio, localStorage, Vitest, Playwright, and GitHub Actions/Pages.
-
-## Verification
-
-Sequential test-first evidence from the original game foundation is in [docs/tdd-log.md](docs/tdd-log.md). Independent corner-speed regression evidence is in [docs/tdd-review.md](docs/tdd-review.md). The DOM-independent engine remains exported for deterministic fixtures; there is no cheat UI.
-
-Future changes follow [AGENTS.md](AGENTS.md). No empty commits or rewritten history.
+Exact execution outcomes, commands, local commit and unresolved findings are in `/root/arcade-migration-audit/preparation/orb-results.json` and `orb-report.md`. This test inventory is not itself a pass claim. See [private migration notes](docs/private-migration.md) for proposed-brand separation and release gates.

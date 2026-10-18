@@ -108,7 +108,7 @@ $('restart').addEventListener('click',()=>{clearInput();game.restart();sync();})
 $('help').addEventListener('click',()=>{
   game.pause();clearInput();sync();
   $('title').textContent='Field guide';
-  $('message').textContent='Move with A / D or arrows. Hold Space or FIRE to shoot. Large spheres split twice. Small spheres move faster. Avoid all spheres. Platforms block harpoons. Clear five sectors before time runs out. P / Esc pauses; R restarts. Touch: hold a direction and FIRE together.';
+  $('message').textContent='Move with A / D or arrows. Hold Space or FIRE to shoot. Large spheres split twice. Small spheres move faster. Avoid all spheres. Platforms block pulses. Clear five sectors before time runs out. P / Esc pauses; R restarts. Touch: hold a direction and FIRE together.';
 });
 $('primary').addEventListener('click',()=>{
   clearInput();

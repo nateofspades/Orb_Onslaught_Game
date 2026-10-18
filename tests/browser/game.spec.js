@@ -1,9 +1,9 @@
 import {test,expect} from '@playwright/test';
 async function boot(page){await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));await page.goto('/');}
 async function game(page,fn){return page.evaluate(async src=>{const {game}=await import('/src/app.js');return (new Function('g',src))(game);},fn);}
-for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390],[568,320],[480,320],[440,320]])test(`responsive DPR arena and accessible controls ${width}x${height}`,async({browser})=>{
- const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:2});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('requestfailed',r=>errors.push(r.url()));page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
- await page.goto('http://127.0.0.1:4173/');
+for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568],[844,390],[568,320],[480,320],[440,320]])test(`responsive DPR arena and accessible controls ${width}x${height}`,async({browser,baseURL})=>{
+ const context=await browser.newContext({baseURL,viewport:{width,height},deviceScaleFactor:2});const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('requestfailed',r=>errors.push(r.url()));page.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`);});
+ await page.goto('/');
  const dimensions=await page.locator('canvas').evaluate(c=>({w:c.width,h:c.height,rect:c.getBoundingClientRect().toJSON(),dpr:devicePixelRatio,sw:document.documentElement.scrollWidth,sh:document.documentElement.scrollHeight}));
  expect(dimensions.w).toBe(Math.round(dimensions.rect.width*2));expect(dimensions.h).toBe(Math.round(dimensions.rect.height*2));expect(dimensions.sw).toBeLessThanOrEqual(width);expect(dimensions.sh).toBeLessThanOrEqual(height);
  expect(dimensions.rect.width/dimensions.rect.height).toBeCloseTo(840/450,2);
@@ -16,10 +16,10 @@ for(const [width,height]of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568
  if(width===844){expect(boxes.left.x).toBeLessThan(width/2);expect(boxes.fire.x).toBeGreaterThan(width/2);expect(dimensions.rect.width).toBeGreaterThanOrEqual(520);expect(await page.evaluate(()=>['pause','restart'].every(id=>getComputedStyle(document.getElementById(id)).visibility==='visible'))).toBe(true);}
  await page.getByRole('button',{name:'Start expedition'}).click();await page.waitForTimeout(250);expect(errors).toEqual([]);await context.close();
 });
-for(const [width,height,expectedArenaWidth,expectedShellWidth]of [[390,844,370,370],[844,390,522.6666666667,824]])test(`fresh mobile load sizes the complete arena at ${width}x${height} before resize`,async({browser})=>{
-  const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:2,hasTouch:true,isMobile:true});
+for(const [width,height,expectedArenaWidth,expectedShellWidth]of [[390,844,370,370],[844,390,522.6666666667,824]])test(`fresh mobile load sizes the complete arena at ${width}x${height} before resize`,async({browser,baseURL})=>{
+  const context=await browser.newContext({baseURL,viewport:{width,height},deviceScaleFactor:2,hasTouch:true,isMobile:true});
   const page=await context.newPage();
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto('/');
   const metrics=await page.evaluate(()=>({
     innerWidth,
     innerHeight,
@@ -64,7 +64,7 @@ test('pauses, resumes, restarts, shows instructions and pauses on visibility los
   await page.getByRole('button',{name:'Instructions',exact:true}).click();await expect(page.getByText(/Small spheres move faster/)).toBeVisible();
 });
 test('starts a playable canvas, keyboard movement and sustained fire',async({page})=>{
-  await boot(page); await expect(page.getByRole('heading',{name:'PANG',exact:true})).toBeVisible();
+  await boot(page); await expect(page.getByRole('heading',{name:'FIELD',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Start expedition'}).click();
   await page.keyboard.down('ArrowLeft');await page.keyboard.down('Space');await page.clock.runFor(500);
   await page.keyboard.up('ArrowLeft');await page.keyboard.up('Space');
@@ -75,11 +75,11 @@ test('starts a playable canvas, keyboard movement and sustained fire',async({pag
 for(const device of [
   {name:'desktop',viewport:{width:1366,height:768},hasTouch:false},
   {name:'mobile',viewport:{width:390,height:844},hasTouch:true},
-])test(`music volume activates and toggles at the high target on ${device.name}`,async({browser},testInfo)=>{
+])test(`music volume activates and toggles at the high target on ${device.name}`,async({browser,baseURL},testInfo)=>{
   testInfo.setTimeout(60_000);
-  const context=await browser.newContext({viewport:device.viewport,hasTouch:device.hasTouch,isMobile:device.hasTouch});
+  const context=await browser.newContext({baseURL,viewport:device.viewport,hasTouch:device.hasTouch,isMobile:device.hasTouch});
   const page=await context.newPage();
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto('/');
   const volume=()=>page.evaluate(async()=>{
     const {music}=await import('/src/app.js');
     const {MUSIC_MASTER_VOLUME}=await import('/src/music.js');
@@ -100,8 +100,8 @@ for(const device of [
 for(const device of [
   {name:'desktop',viewport:{width:1366,height:768},hasTouch:false},
   {name:'mobile',viewport:{width:390,height:844},hasTouch:true},
-])test(`game pause suspends music and resumes its same transport on ${device.name}`,async({browser})=>{
-  const context=await browser.newContext({viewport:device.viewport,hasTouch:device.hasTouch,isMobile:device.hasTouch});
+])test(`game pause suspends music and resumes its same transport on ${device.name}`,async({browser,baseURL})=>{
+  const context=await browser.newContext({baseURL,viewport:device.viewport,hasTouch:device.hasTouch,isMobile:device.hasTouch});
   const page=await context.newPage();
   await page.addInitScript(()=>{
     class Param{constructor(value=0){this.value=value;}setValueAtTime(value){this.value=value;}linearRampToValueAtTime(value){this.value=value;}exponentialRampToValueAtTime(value){this.value=value;}cancelScheduledValues(){}}
