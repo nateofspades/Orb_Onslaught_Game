@@ -1,5 +1,9 @@
 # Private migration notes — aurora field study
 
+## Final-release superseding note — 2026-10-20
+
+The owner has authorized the history-preserving final Orb Onslaught release at https://nateofspades.github.io/Orb_Onslaught_Game/ . The private-only hold and Orb Splitter candidate below are historical, not current restrictions or active branding. Final identity is Orb Onslaught; prepared polar artwork/pulse, controls, music and storage keys are retained. Current release evidence belongs to `/root/arcade-final-migration/orbonslaughtgame/` and [IP_AUDIT.md](IP_AUDIT.md). The original notes below are preserved as provenance, not erased or silently rewritten.
+
 ## Preserve the existing design, do not recreate the game
 
 Source and the existing gameplay screenshot show a custom snow-parka/visor explorer, layered aurora, mountain/pine observation base and shaded orbit-marked spheres. Retain these drawings and the five existing source-defined levels rather than replacing already-distinct original work. The narrow projectile edit removes the pointed arrowhead and adds concentric pulse rings plus a travelling light tether. The authoritative collision line remains the existing shot data; rings/glow are decorative. No physics, player, split, timer, scoring, input or restart code was rewritten. The only application-code wording change is field-guide “harpoons” → “pulses.”

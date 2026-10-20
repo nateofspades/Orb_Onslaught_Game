@@ -11,4 +11,4 @@ http.createServer(async(req,res)=>{
     const data=await readFile(file);
     res.writeHead(200,{'Content-Type':({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'})[extname(file)]||'text/plain','Cache-Control':'no-store'});res.end(data);
   } catch {res.writeHead(404);res.end('Not found');}
-}).listen(port,'127.0.0.1',()=>console.log(`Pang: http://127.0.0.1:${port}`));
+}).listen(port,'127.0.0.1',()=>console.log(`Orb Onslaught: http://127.0.0.1:${port}`));

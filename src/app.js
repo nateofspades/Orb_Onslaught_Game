@@ -142,7 +142,7 @@ function sync(){
     sync.state=game.state;
     music.setGamePaused(game.state==='paused');
     const views={
-      ready:['ARCADE / EXPEDITION 001','Chase the aurora.','Split the spheres. Keep your footing. Five sectors. Three lives. One expedition.','Start expedition'],
+      ready:['ARCADE / EXPEDITION 001','Orb Onslaught','Split the spheres. Keep your footing. Five sectors. Three lives. One expedition.','Start expedition'],
       paused:['EXPEDITION ON HOLD','Take a breath.','Your expedition is paused. Resume when you are ready.','Resume expedition'],
       cleared:['SECTOR SECURED','Clear skies ahead.','All spheres cleared. The next sector awaits.','Next sector'],
       gameover:['SIGNAL LOST','Expedition over.','Three lives spent. Every expedition teaches you something. Try again.','Try again'],

@@ -1,5 +1,7 @@
 # Music provenance: “Polar Circuit”
 
+Final-release context (2026-10-20): the owner authorized publication as Orb Onslaught. The historical Created for label and assertions below remain provenance; the current game title is Orb Onslaught, not the private working title. The score and implementation are unchanged. Final real AudioContext clock/signal/continuity tests supplement, but do not establish, authorship or physical loudness. See [IP_AUDIT.md](IP_AUDIT.md).
+
 - **Work:** “Polar Circuit”
 - **Type:** programmatic Web Audio instrumental
 - **Created for:** Pang: Aurora Expedition

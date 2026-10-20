@@ -40,6 +40,8 @@ for(const [width,height,expectedArenaWidth,expectedShellWidth]of [[390,844,370,3
   expect(metrics.canvas.width/metrics.canvas.height).toBeCloseTo(840/450,2);
   await context.close();
 });
+test.describe('fresh mobile multitouch context',()=>{
+test.use({hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
 test('real simultaneous two-finger touch moves and shoots, release and cancel never stick',async({page,context})=>{
   await page.setViewportSize({width:390,height:844});await boot(page);await page.getByRole('button',{name:'Start expedition'}).click();
   const cdp=await context.newCDPSession(page);await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:5});
@@ -51,6 +53,7 @@ test('real simultaneous two-finger touch moves and shoots, release and cancel ne
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:touches});
   await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});
   expect(await page.evaluate(async()=>Object.values((await import('/src/app.js')).input).some(Boolean))).toBe(false);
+});
 });
 test('pauses, resumes, restarts, shows instructions and pauses on visibility loss',async({page})=>{
   await boot(page);await page.getByRole('button',{name:'Start expedition'}).click();
@@ -64,7 +67,7 @@ test('pauses, resumes, restarts, shows instructions and pauses on visibility los
   await page.getByRole('button',{name:'Instructions',exact:true}).click();await expect(page.getByText(/Small spheres move faster/)).toBeVisible();
 });
 test('starts a playable canvas, keyboard movement and sustained fire',async({page})=>{
-  await boot(page); await expect(page.getByRole('heading',{name:'FIELD',exact:true})).toBeVisible();
+  await boot(page); await expect(page.getByRole('heading',{name:'Orb Onslaught',exact:true,level:1})).toBeVisible();
   await page.getByRole('button',{name:'Start expedition'}).click();
   await page.keyboard.down('ArrowLeft');await page.keyboard.down('Space');await page.clock.runFor(500);
   await page.keyboard.up('ArrowLeft');await page.keyboard.up('Space');

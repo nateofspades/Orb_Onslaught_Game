@@ -14,8 +14,8 @@ it('renders a circular pulse head instead of a pointed harpoon while preserving 
   expect(calls.some(([name,x,y,r])=>name==='arc'&&x===321&&y===123&&r===5)).toBe(true);
   expect(calls.some(([name,x,y])=>name==='lineTo'&&x===316&&y===126)).toBe(false);
 });
-it('uses only a neutral private title in public-facing markup',()=>{
+it('uses the approved final title without commercial or candidate branding',()=>{
  const html=readFileSync(new URL('../../index.html',import.meta.url),'utf8');
- expect(html).toContain('<title>Aurora Field Study');
+ expect(html).toContain('<title>Orb Onslaught</title>');
  expect(html).not.toMatch(/Pang|PANG|Orb Splitter/);
 });

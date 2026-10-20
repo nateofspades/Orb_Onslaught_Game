@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {mkdirSync,readFileSync} from 'node:fs';
-const evidence='/root/arcade-migration-audit/preparation/orb-screenshots';
+const evidence=process.env.ORB_SCREENSHOTS||'test-results/orb-screenshots';
 mkdirSync(evidence,{recursive:true});
 async function boot(page){
   await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});
@@ -9,7 +9,7 @@ async function boot(page){
   await page.goto('/');
   // The app synchronizes HUD/first paint in RAF; a paused clock must deliver that frame.
   await page.clock.runFor(16);
-  await expect(page).toHaveTitle(/Aurora Field Study/);
+  await expect(page).toHaveTitle('Orb Onslaught');
   // Exact source readback prevents false passes against any old/public checkout server.
   expect(await (await page.request.get('/src/render.js')).text()).toBe(readFileSync(new URL('../../src/render.js',import.meta.url),'utf8'));
 }
